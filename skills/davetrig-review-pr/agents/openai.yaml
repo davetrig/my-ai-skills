@@ -1,0 +1,4 @@
+interface:
+  display_name: "Davetrig Review PR"
+  short_description: "Review GitHub pull requests"
+  default_prompt: "Use $davetrig-review-pr to review this PR: <GitHub URL or PR number>."

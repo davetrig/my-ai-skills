@@ -1,0 +1,7 @@
+interface:
+  display_name: "Davetrig Create PR"
+  short_description: "Create draft PRs with Doximity conventions"
+  default_prompt: "Use $davetrig-create-pr to create a draft PR for this branch."
+
+policy:
+  allow_implicit_invocation: true
