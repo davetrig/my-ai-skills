@@ -107,9 +107,12 @@ description: >-
    - If the branch is not pushed, ask before pushing.
    - Use `git push` when upstream exists. Use `git push -u origin HEAD` only after approval when no upstream exists.
    - Show the proposed PR title and ask for approval.
-   - Create the PR with a body file to preserve Markdown formatting:
+   - Create the PR with a body file to preserve Markdown formatting. Write it to a unique directory so concurrent runs don't overwrite each other:
      ```bash
-     gh pr create --draft --base BASE_BRANCH --title "TITLE" --body-file /tmp/pr-body.md   # add --label no-qa for a No QA PR
+     PR_DIR=$(mktemp -d)
+     # write the body to "$PR_DIR/pr-body.md", then:
+     gh pr create --draft --base BASE_BRANCH --title "TITLE" --body-file "$PR_DIR/pr-body.md"   # add --label no-qa for a No QA PR
+     rm -rf "$PR_DIR"
      ```
    - Do not add reviewers manually.
 

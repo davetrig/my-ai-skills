@@ -8,7 +8,7 @@ description: >-
 
 ## Core rules
 
-- Review only. Do not post GitHub comments, submit a review, approve/request changes, push commits, or edit files unless the user explicitly asks.
+- Review only. Do not post GitHub comments, submit a review, approve/request changes, push commits, or edit files or switch branches in the user's checkout unless the user explicitly asks. A detached worktree for inspection (step 4) is allowed.
 - Even when the user asks to post comments, first show the exact draft comments and wait for approval before posting.
 - Review from the diff by default. Pull deeper repo context only when correctness, risk, or a likely finding depends on surrounding code.
 - For Doximity repos, apply repo instructions and Doximity engineering norms: follow `AGENTS.md`/`CLAUDE.md`, protect HIPAA/PII, respect auth boundaries, prefer existing service patterns, and use `dox-do` for Rails/app commands if commands are needed.
@@ -62,21 +62,29 @@ description: >-
      list (`pulls/PR_NUMBER/comments`) against that set before using it anywhere below. Top-level
      issue comments (from the `issues/PR_NUMBER/comments` endpoint) have no thread-resolution concept
      and are never filtered.
-   - Fetch the patch to a temp file:
+   - Fetch the patch to a temp file in a unique directory:
      ```bash
-     gh pr diff PR_NUMBER --repo OWNER/REPO --patch > /tmp/pr-PR_NUMBER.patch
+     PR_DIR=$(mktemp -d)
+     gh pr diff PR_NUMBER --repo OWNER/REPO --patch > "$PR_DIR/pr-PR_NUMBER.patch"
      ```
+     Remove `$PR_DIR` when the review is finished.
    - Read the PR description, commit list, changed-file list, the *filtered* existing comments/reviews, and patch before forming conclusions.
 
 4. **Review diff-first, then deepen selectively**
    - Start from the patch and changed-file list.
    - Inspect surrounding code, call sites, schemas, migrations, configs, tests, or docs only when the diff suggests a real risk or ambiguity.
-   - If already in the target repo and the worktree is clean, checkout the PR only when deeper local inspection is useful:
+   - If already in the target repo and deeper local inspection is useful, create a detached worktree at the PR head. This leaves the user's checkout, branch, and uncommitted changes untouched:
      ```bash
-     git status --short
-     gh pr checkout PR_NUMBER --repo OWNER/REPO
+     git fetch origin pull/PR_NUMBER/head
+     REVIEW_DIR=$(mktemp -d)
+     git worktree add --detach "$REVIEW_DIR" FETCH_HEAD
      ```
-   - If the worktree is dirty or the repo differs, avoid disrupting local work; review from the patch and `gh api`/`gh pr view` data.
+     Read files from `$REVIEW_DIR`. When the review is done, clean up:
+     ```bash
+     git worktree remove "$REVIEW_DIR"
+     ```
+   - If the repo differs or the checkout is not a git repo, review from the patch and `gh api`/`gh pr view` data.
+   - Never run `gh pr checkout`; it switches the user's branch.
    - Follow local repo instructions before running any command. Use non-interactive commands only. Do not run specs unless explicitly requested.
 
 5. **Review for Doximity-relevant risk**
