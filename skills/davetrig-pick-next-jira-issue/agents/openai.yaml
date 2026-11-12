@@ -1,0 +1,4 @@
+interface:
+  display_name: "Pick Next Jira Issue"
+  short_description: "Find agent-ready Jira work with cached scoring"
+  default_prompt: "Use $davetrig-pick-next-jira-issue to recommend the safest Jira issue for an agent to pick up next."
