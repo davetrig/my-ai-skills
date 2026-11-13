@@ -9,9 +9,13 @@ allowed-tools:
   - mcp__agentic-dev__dox_service_graph
   - mcp__agentic-dev__dox_assemble_context
   - mcp__agentic-dev__dox_resolve_route
+  - mcp__claude_ai_Google_Drive__read_file_content
   - Agent
   - AskUserQuestion
   - Read
+  - Bash(git -C * fetch *)
+  - Bash(git -C * worktree *)
+  - Bash(git -C * diff *)
 user-invocable: true
 ---
 
@@ -24,6 +28,7 @@ A tech lead's workflow for turning a product proposal or feature ticket into a s
 - User invokes `/davetrig-epic-breakdown` or asks to "break this down into stories"
 - User pastes a product proposal or feature description and asks for an epic
 - User shares a Jira ticket and asks how to scope or sequence the engineering work
+- User shares a Google Docs proposal or a UI prototype branch to scope
 
 ## Red Flags — STOP If You Are Doing Any of These
 
@@ -39,7 +44,7 @@ A tech lead's workflow for turning a product proposal or feature ticket into a s
 
 ## Phase 1: Intake
 
-Accept one of: Jira ticket key, Jira URL, or pasted proposal text.
+Accept any of: Jira ticket key, Jira URL, pasted proposal text, Google Docs proposal link, or a UI prototype branch. Combine them when given together.
 
 If a Jira key or URL is provided, fetch it:
 
@@ -50,6 +55,41 @@ acli jira workitem view TICKET-KEY
 Or use `mcp__claude_ai_Atlassian_Rovo__getJiraIssue` if the MCP server is available.
 
 Read the full content. Pull out: title, goal, scope signals, acceptance criteria, linked docs, and any existing comments that constrain the work. Note what is explicitly stated vs. what is implied or missing.
+
+### Google Docs proposal
+
+If given a `docs.google.com` link (Docs, Sheets, or Slides), extract the file ID from the path (`/d/<FILE_ID>/`) and read it:
+
+```
+mcp__claude_ai_Google_Drive__read_file_content  →  fileId=<FILE_ID>
+```
+
+Set `includeComments` only when the user asks about comments, feedback, or open questions. If the read fails or returns nothing, say so and ask the user to paste the text. Never guess the content.
+
+Treat the document as the proposal. Pull out the same fields as a Jira ticket and note which ones the document leaves unstated.
+
+### UI prototype branch
+
+If given a branch name, or a branch and repo, review its UI code read-only. Never check out the branch in the user's working copy, and never run the app or its dev server. This follows the same worktree pattern as `davetrig-review-pr`:
+
+```bash
+git -C ~/work/<repo> fetch origin <branch>
+REVIEW_DIR=$(mktemp -d)
+git -C ~/work/<repo> worktree add --detach "$REVIEW_DIR" FETCH_HEAD
+```
+
+Use `git -C ~/work/<repo> diff --stat origin/master...FETCH_HEAD` to list changed files. Focus on new or changed components, routes, and screens. Record for Phase 2:
+- screens and flows the prototype shows;
+- components it adds or changes;
+- what looks finished and what looks stubbed or mocked.
+
+Treat the prototype as a description of intended behavior, not as an implementation to copy. Remove the worktree when finished:
+
+```bash
+git -C ~/work/<repo> worktree remove "$REVIEW_DIR"
+```
+
+If the repo isn't clear, ask. Do not guess.
 
 ---
 
